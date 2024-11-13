@@ -2,7 +2,7 @@ package fiori
 
 import (
 	"bytes"
-	"encoding/binary"
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"os"
@@ -52,17 +52,31 @@ func (f *Fiori[T]) SetPersistanceFile(p string) {
 func (f *Fiori[T]) Add(item T) error {
 
 	if len(f.currentItems) == f.itemsPerBlock {
+		// Safe
+
 		// compress and move to []blocks
 		buffer := toBytesUnsafe(f.currentItems)
 
-		fmt.Println("Buffer:", buffer)
-
 		back, err := fromBytesUnsafe[[]T](buffer)
 		if err != nil {
-			fmt.Println("Error", err)
+			fmt.Println("Unsafe Error", err)
 			return nil
 		}
-		fmt.Println("back", back)
+		fmt.Println("original", f.currentItems, "back", back)
+
+		// Safe
+		buffer, err = toBytes(f.currentItems)
+		if err != nil {
+			fmt.Println("Safe Error", err)
+			return nil
+		}
+
+		back, err = fromBytes[[]T](buffer)
+		if err != nil {
+			fmt.Println("Safe Error", err)
+			return nil
+		}
+		fmt.Println("original", f.currentItems, "back", back)
 
 		if f.persistanceHandle != nil {
 			// persist to file
@@ -91,17 +105,25 @@ func compress(input []byte) ([]byte, error) {
 	return compressed.Bytes(), nil
 }
 
+// toBytes converts a struct to bytes using gob
 func toBytes(data interface{}) ([]byte, error) {
 	var buf bytes.Buffer
-	err := binary.Write(&buf, binary.LittleEndian, data)
-	return buf.Bytes(), err
+	enc := gob.NewEncoder(&buf)
+	if err := enc.Encode(data); err != nil {
+		return nil, fmt.Errorf("gob encoding failed: %w", err)
+	}
+	return buf.Bytes(), nil
 }
 
+// fromBytes converts bytes back to struct using gob
 func fromBytes[T any](data []byte) (T, error) {
 	var result T
-	buf := bytes.NewReader(data)
-	err := binary.Read(buf, binary.LittleEndian, &result)
-	return result, err
+	buf := bytes.NewBuffer(data)
+	dec := gob.NewDecoder(buf)
+	if err := dec.Decode(&result); err != nil {
+		return result, fmt.Errorf("gob decoding failed: %w", err)
+	}
+	return result, nil
 }
 
 // ToBytes converts a struct to a byte slice using unsafe

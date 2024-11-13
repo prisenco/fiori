@@ -6,9 +6,9 @@ import (
 )
 
 type simple struct {
-	a string
-	b string
-	c int
+	A string
+	B string
+	C int
 }
 
 func TestNew(t *testing.T) {
@@ -26,7 +26,7 @@ func TestAdd(t *testing.T) {
 
 	fmt.Println(f)
 
-	s := simple{a: "a", b: "b", c: 3}
+	s := simple{A: "a", B: "b", C: 3}
 
 	f.Add(s)
 	f.Add(s)

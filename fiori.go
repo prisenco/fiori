@@ -22,11 +22,15 @@ type Fiori[T any] struct {
 	currentItems      []T
 }
 
-const defaultItemsPerBlock = 100
-const defaultErrorRate = 0.001
+const (
+	defaultItemsPerBlock = 100
+	defaultErrorRate     = 0.001
+	defaultUnsafeEncode  = false
+)
 
 func New[T any]() Fiori[T] {
 	return Fiori[T]{
+		unsafeEncode:  defaultUnsafeEncode,
 		itemsPerBlock: defaultItemsPerBlock,
 		errorRate:     defaultErrorRate,
 	}

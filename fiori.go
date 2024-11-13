@@ -52,31 +52,49 @@ func (f *Fiori[T]) SetPersistanceFile(p string) {
 func (f *Fiori[T]) Add(item T) error {
 
 	if len(f.currentItems) == f.itemsPerBlock {
-		// Safe
+		if f.unsafeEncode {
+			// Unsafe encoding
 
-		// compress and move to []blocks
-		buffer := toBytesUnsafe(f.currentItems)
+			// compress and move to []blocks
+			buffer := toBytesUnsafe(f.currentItems)
 
-		back, err := fromBytesUnsafe[[]T](buffer)
-		if err != nil {
-			fmt.Println("Unsafe Error", err)
-			return nil
+			compressed, err := compress(buffer)
+			if err != nil {
+				return err
+			}
+
+			/*
+				back, err := fromBytesUnsafe[[]T](buffer)
+				if err != nil {
+					fmt.Println("Unsafe Error", err)
+					return nil
+				}
+			*/
+			f.blocks = append(f.blocks, string(compressed))
+		} else {
+			// Safe encoding
+
+			buffer, err := toBytes(f.currentItems)
+			if err != nil {
+				fmt.Println("Safe Error", err)
+				return nil
+			}
+
+			compressed, err := compress(buffer)
+			if err != nil {
+				return err
+			}
+
+			f.blocks = append(f.blocks, string(compressed))
+
+			/*
+				back, err := fromBytes[[]T](buffer)
+				if err != nil {
+					fmt.Println("Safe Error", err)
+					return nil
+				}
+			*/
 		}
-		fmt.Println("original", f.currentItems, "back", back)
-
-		// Safe
-		buffer, err = toBytes(f.currentItems)
-		if err != nil {
-			fmt.Println("Safe Error", err)
-			return nil
-		}
-
-		back, err = fromBytes[[]T](buffer)
-		if err != nil {
-			fmt.Println("Safe Error", err)
-			return nil
-		}
-		fmt.Println("original", f.currentItems, "back", back)
 
 		if f.persistanceHandle != nil {
 			// persist to file
